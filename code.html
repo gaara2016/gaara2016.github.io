@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<title>Hello Strapdown</title>
+<meta charset="UTF-8">
+<xmp theme="united" style="display:none;">
+# Android Http简单使用实现登录校园网App
+
+由于登录需要学校认证的WIFI比较繁琐,所以写了个小的App自己用,算是做笔记和试图养成一个写博客的习惯...
+
+	作为一个初学者,没有企业开发的经历,很多代码都是按照自己的思路来写,存在很多需要优化的方面,第二篇博客,经验不够,存在不足的地方,大神勿喷....
+
+
+-------------------
+
+## 演示
+
+ ![演示](http://img.my.csdn.net/uploads/201603/22/1458655272_1556.gif)
+
+## 布局文件(没有自定义View,就是简单的登录界面,完全可以不看)
+
+```
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/main_back"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    tools:context="com.brioal.lzulogin.MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginBottom="20dp"
+            android:layout_weight="1"
+            android:padding="20dp"
+            android:src="@mipmap/ic_launcher" />
+
+        <TextView
+            android:layout_width="match_parent"
+
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/main_title"
+            android:textColor="@color/colorWhite"
+            android:textSize="30dp"
+            android:typeface="serif" />
+
+    </LinearLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="@color/colorWhite">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:background="@color/colorWhite"
+            android:orientation="vertical">
+
+            <LinearLayout
+
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:orientation="horizontal">
+
+                <android.support.design.widget.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1">
+
+                    <EditText
+                        android:inputType="textAutoComplete"
+                        android:id="@+id/main_et_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/username"
+                        android:imeOptions="actionNext"
+                        android:typeface="serif" />
+                </android.support.design.widget.TextInputLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="10dp"
+                    android:gravity="center"
+                    android:text="@string/lzu_edu_cn"
+                    android:textSize="20dp"
+                    android:typeface="serif" />
+            </LinearLayout>
+
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp">
+
+                <EditText
+
+                    android:imeOptions="actionDone"
+                    android:id="@+id/main_et_password"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/password"
+                    android:inputType="textPassword"
+                    android:typeface="serif" />
+            </android.support.design.widget.TextInputLayout>
+
+            <Button
+                android:id="@+id/main_btn_save"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_margin="20dp"
+                android:background="@drawable/btn_back"
+                android:text="保存"
+                android:textColor="@color/colorAccent"
+                android:typeface="serif" />
+        </LinearLayout>
+
+
+    </RelativeLayout>
+
+
+</LinearLayout>
+
+```
+
+##实现原理
+
+
+1.使用Http的Get请求,传入用户名和密码,获取返回的网页代码,通过代码内容来判断登录的结果
+2.使用Receiver,监听WIFI连接状态的改变,当连接上一个可用的WIFI之后调用方法进行登录(因为学校大部分WIFI还是需要登陆的,所以没做过多的判断,对所有WIFI都进行登录操作);
+3.获取网页的返回内容.判断登录的结果(看过返回网页的代码,没有其他判断语句,包含连接成功的网页就是登录成功,包含用户名或者密码的内容就是错误返回,所以偷懒直接判断网页源代码是否包含那几个字符串,具体情况需要具体分析)
+
+
+### 部分用到的方法的解释
+
+**1.获取网页的返回内容**　通过链接打开InputStream,读取数据返回字符串
+
+  应该都能看懂,就不做解释
+
+```
+public static String getHtml(InputStream inputStream, String encode) {
+        InputStream is = inputStream;
+        String code = encode;
+        BufferedReader reader = null;
+        StringBuffer sb = null;
+        try {
+            reader = new BufferedReader(new InputStreamReader(inputStream, encode));
+            sb = new StringBuffer();
+            String str = null;
+            while ((str = reader.readLine()) != null) {
+                if (str.isEmpty()) {
+
+                } else {
+                    sb.append(str);
+                    sb.append("\n");
+                }
+            }
+            reader.close();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return sb.toString();
+    }
+```
+
+
+**2.注册能监听WIFI状态的BroadcastReceiver **　
+	使用静态注册方法,这样即使App不启动也能响应事件
+	我使用的是小米手机,安全中心内会默认禁止软件的自动启动和系统唤醒,需要关闭之后Receiver才会响应事件
+
+Receiver继承BroadcastReceiver
+
+```
+public class LoginReceiver extends BroadcastReceiver {
+  
+    @Override
+    public void onReceive(final Context context, Intent intent) {
+     ...
+    }
+```
+
+Manifes文件中对Receiver进行注册
+
+```
+ <receiver android:name=".receiver.LoginReceiver">
+            <intent-filter>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+                <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
+                <action android:name="android.net.wifi.STATE_CHANGE" />
+            </intent-filter>
+        </receiver>
+```
+**3.在`onReceiver`方法中对`intent.getAction()`进行判断**
+
+```
+if (WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())) {
+            final Parcelable parcelableExtra = intent
+                    .getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+            if (null != parcelableExtra) {
+                NetworkInfo networkInfo = (NetworkInfo) parcelableExtra;
+                NetworkInfo.State state = networkInfo.getState();
+                boolean isConnected = state == NetworkInfo.State.CONNECTED;
+                if (isConnected) {
+                    Log.i(TAG, "onReceive: 连接上可用的WIFi");
+                     // 开始登录
+                  
+                } else {
+                    Log.i(TAG, "onReceive: 未连接可用wifi");
+                }
+            }
+        }
+```
+
+**4.通过从FireDebug中获取到的点击登录按钮的响应连接和传入参数来进行登录操作**　
+
+```
+String click_url = "..........";
+String parma = "...........";
+HttpURLConnection connection = null;
+	URL url;
+            try {
+                    url = new URL(click_url);
+                    connection = (HttpURLConnection) url.openConnection();
+                    connection.setDoInput(true);
+                    connection.setDoOutput(true);
+                    connection.setRequestMethod("GET");
+                    connection.setUseCaches(false);
+                    connection.getOutputStream().write(parma.getBytes());
+                    connection.connect(); //????
+                    int responseCode = connection.getResponseCode();
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                    //获取网页传回的数据
+                        String s = getHtml(connection.getInputStream(), "GBK");
+                        //此处测试的时候因为错误页面只返回几个字,所以格式于之前的登录成功的格式不同,改为UTF-8之后不会乱码
+                        String errorMsg = new String(s.getBytes("GBK"), "UTF-8");
+                        System.out.println("Html" + s);
+                        if (s.contains("连接成功")) {
+                            //使用Handler来更新界面handler.sendEmptyMessage(MainActivity.RESULT_SUCCESS);
+                        } else if (errorMsg.contains("密码错误")) {
+                            //密码错误
+                            handler.sendEmptyMessage(MainActivity.RESULT_PASSWORD_ERROT);
+                        } else if (errorMsg.contains("用户名错误")) {
+                            handler.sendEmptyMessage(MainActivity.RESULT_NAME_ERROT);
+
+                        }
+
+
+                        connection.disconnect();
+                    }
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (ProtocolException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+```
+
+**5.Handler接收消息显示通知或者更新布局**
+Activity前台的时候使用的是MainActiivty传入的Handler,负责更新登录按钮的显示文字
+当Activity不在前台的时候,使用的是Receiver内的Handler,负责显示通知
+
+Receiver内的Handler
+
+```
+	public Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            if (msg.what == RESULT_SUCCESS) {
+                showSuccess();
+            } else if (msg.what == RESULT_NAME_ERROT) {
+                showErron("用户名错误");
+            } else if (msg.what == RESULT_PASSWORD_ERROT) {
+                showErron("密码错误");
+            }
+        }
+    };
+```
+显示登录成功的通知
+
+```
+@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public void showSuccess() {
+        //获取NoticationManager对象
+        manager = (NotificationManager) context.getSystemService(context.NOTIFICATION_SERVICE);
+        final Notification notify3 = new Notification.Builder(context)
+                .setSmallIcon(R.mipmap.ic_launcher) // 设置图标
+                .setTicker("登录成功") // 设置在通知栏上滚动的信息
+                .setContentTitle("登陆成功") // 设置主标题
+                .build();
+        notify3.flags |= Notification.FLAG_AUTO_CANCEL; // 点击自动消失
+        notify3.defaults |= Notification.DEFAULT_VIBRATE; //使用自动的振动模式
+        manager.notify(NOTICATION_CANCLE_DELAY, notify3); // 显示通知
+    }
+```
+
+显示错误的通知 (内容大同小异) ,不同的是设置了点击的时候启动MainActivity
+
+```
+ @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public void showErron(String msg) {
+        manager = (NotificationManager) context.getSystemService(context.NOTIFICATION_SERVICE);
+        PendingIntent pendingIntent3 = PendingIntent.getActivity(context, 0,
+                new Intent(context, MainActivity.class), 0);
+        Notification notify3 = new Notification.Builder(context)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setTicker("登录失败")
+                .setContentTitle("登陆失败")
+                .setContentText(msg)
+                .setContentIntent(pendingIntent3).build();
+        notify3.flags |= Notification.FLAG_AUTO_CANCEL;
+        manager.notify(NOTICATION_CANCLE_DELAY, notify3);
+    }
+```
+
+至于MainActivity的代码都比较简单,因为宿舍要熄灯了,而且我感觉不会有多少人看吧,暂且不更新了,总结写的有点乱,等找个时候再重新整理一遍遇到的问题和解决思路.
+源码已分享到[Github](https://github.com/Brioal/LzuLogin2.0.git)
+欢迎交流Android开发,大三狗一枚,联系方式:QQ:821329382
+</xmp>
+
+<script src="http://strapdownjs.com/v/0.2/strapdown.js"></script>
+</html>

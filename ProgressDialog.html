@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<title>ProgressDialog的详细使用方式总结</title>
+<meta charset="UTF-8">
+<xmp theme="united" style="display:none;">
+##ProgressDialog的详细使用方式总结
+
+ 1. **简单演示**
+ 2.  **静态方法实例化ProgressDialog**
+ 3. **常规方法实例化**
+ 4.  **设置样式**
+ 5.    **设置点击空白返回,返回键返回**
+ 6.    **设置按钮**
+ 7.    **调用Show方法将Dialog显示出来**
+ 8.    **进度的设置及不确定状态的使用**
+
+
+###简单演示
+![这里写图片描述](http://img.blog.csdn.net/20160323155152165)
+
+###常用方法总结
+####1.静态方法实例化ProgressDialog(只能创建圆形条)
+
+```
+
+ProgressDialog.show(Context context, CharSequence title, CharSequence message);
+简单的传入参数有context , 标题 , 提示信息
+另外还可以包含其他参数,见下图
+```
+![这里写图片描述](http://img.blog.csdn.net/20160324225536786)
+####2.常规方法实例化
+```
+ progressDialog = new ProgressDialog(MainActivity.this);
+```
+####3.设置样式
+```
+水平样式
+progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+圆形样式
+progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+```
+标题,提示信息,图标的设置
+```
+progressDialog.setTitle("标题");
+progressDialog.setMessage("提示信息");
+progressDialog.setIcon(R.mipmap.ic_launcher);
+```
+设置之后的样式
+**水平**
+![这里写图片描述](http://img.blog.csdn.net/20160324230234465)
+**圆形**
+![这里写图片描述](http://img.blog.csdn.net/20160324230149804)
+####4.设置点击空白返回,返回键返回
+```
+progressDialog.setCancelable(true); // 能够返回
+progressDialog.setCanceledOnTouchOutside(true); // 点击外部返回
+```
+####5.设置按钮(最多三个)
+#####**添加一个按钮,并设置点击事件**
+```
+  progressDialog.setButton(ProgressDialog.BUTTON_NEGATIVE, "取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                progressDialog.dismiss();
+            }
+        });
+```
+效果如下
+![这里写图片描述](http://img.blog.csdn.net/20160324230634243)
+#####**添加两个按钮,并设置点击事件**
+```
+ progressDialog.setButton(ProgressDialog.BUTTON_POSITIVE, "确定", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                progressDialog.dismiss();
+            }
+        });
+        
+      progressDialog.setButton(ProgressDialog.BUTTON_NEGATIVE, "取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                progressDialog.dismiss();
+            }
+        });
+```
+#####**添加三个按钮,并设置点击事件**
+```
+ progressDialog.setButton(ProgressDialog.BUTTON_POSITIVE, "确定", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                progressDialog.dismiss();
+            }
+        });
+        progressDialog.setButton(ProgressDialog.BUTTON_NEUTRAL, "中立", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                progressDialog.dismiss();
+            }
+        });
+        progressDialog.setButton(ProgressDialog.BUTTON_NEGATIVE, "取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                progressDialog.dismiss();
+            }
+        });
+```
+三个按钮的效果如下:
+![这里写图片描述](http://img.blog.csdn.net/20160324230927745)
+####6.调用Show方法将Dialog显示出来
+```
+progressDialog.show();
+```
+####7.进度的设置及不确定状态的使用
+#####ProgressDialog还有一个属性为
+![这里写图片描述](http://img.blog.csdn.net/20160324231210964)
+意思是是否处于不确定状态,所谓的不确定状态大家应该都见过:
+就是下载东西的时候正在连接服务器的时候显示的状态
+![这里写图片描述](http://img.blog.csdn.net/20160324231338824)
+#####进度的设置方法(默认的数值是0-100),圆形条此属性无用
+```
+ progressDialog.setProgress();
+```
+######此外还有一个二级进度的属性,听起来陌生但是大家应该都见过,如下:
+一个颜色比较浅的进度条就称为二级进度,圆形条设置此进度无用
+![这里写图片描述](http://img.blog.csdn.net/20160324231611513)
+######二级进度的设置方法
+```
+progressDialog.setSecondaryProgress();
+```
+
+###常用的属性说完了,下面贴一下自已用来更新进度的方式
+####1.声明一个Runnable来产生进度(将进度用Handler发出)
+```
+private Runnable runnable = new Runnable() {
+
+        @Override
+        public void run() {
+            int i = 0;
+            while (true) {
+                try {
+                    Thread.sleep(200);
+                    i++;
+                    handler.sendEmptyMessage(i);
+                } catch (Exception e) {
+                }
+            }
+        }
+    };
+```
+
+####2.使用Handler来接收消息更新UI(设置二级进度在达到尽头之前一直比一级进度多20),代码如下
+```
+private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            if (progressDialog != null) {
+                progressDialog.setProgress(msg.what % 100);
+                progressDialog.setSecondaryProgress(msg.what % 100 < 100 ? msg.what % 100 + 20 : 100);
+
+            }
+        }
+    };
+```
+
+####剩下的代码就是基础的onClick事件,就不贴了
+测试代码已分享到Github -- [ProgressDialogTest](https://github.com/Brioal/ProgressDialogTest.git)
+##晚安
+</xmp>
+
+<script src="http://strapdownjs.com/v/0.2/strapdown.js"></script>
+</html>
